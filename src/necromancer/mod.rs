@@ -1,3 +1,19 @@
+pub fn hamming_distance(a: &[u8], b: &[u8]) -> u32 {
+    a.iter()
+        .zip(b)
+        .map(|(a, b)| hamming_distance_byte(*a, *b))
+        .sum()
+}
+
+pub fn hamming_distance_byte(a: u8, b: u8) -> u32 {
+    let distance: u8 = char_to_binary(a as char, 8)
+        .iter()
+        .zip(char_to_binary(b as char, 8))
+        .map(|(a, b)| a ^ b)
+        .sum();
+    distance as u32
+}
+
 // Input:
 // (
 //   "Burning 'em, if you ain't quick and nimble
@@ -19,9 +35,10 @@ pub fn repeating_key_xor(s: &str, k: &str) -> String {
     u8s_to_hex_string(&xor(s_bytes, &repeated_key))
 }
 
-pub fn unmask_xor(s: &str) -> (String, f32) {
+pub fn unmask_xor(s: &str) -> (String, f32, u8) {
     let mut decrypted = String::new();
     let mut best_score = 0.0;
+    let mut key: u8 = 0;
     for mask_char in 39..128 {
         let mask_vec = vec![mask_char; s.len()];
         let mask = String::from_utf8(mask_vec.clone()).unwrap();
@@ -29,9 +46,10 @@ pub fn unmask_xor(s: &str) -> (String, f32) {
         if score > best_score {
             best_score = score;
             decrypted = hex_xor(s, &string_to_hex(&mask));
+            key = mask_char;
         }
     }
-    (decrypted, best_score)
+    (decrypted, best_score, key)
 }
 
 // "FFFF" -> ["FF", "FF"] -> [255, 255]
@@ -61,7 +79,7 @@ pub fn hex_to_base_64(s: String) -> String {
             Err(x) => panic!("Tried to parse hex into utf8, got error: {:?}", x),
         };
 
-        bins.append(&mut char_to_binary(n as u8 as char));
+        bins.append(&mut char_to_binary(n as u8 as char, 8));
     }
 
     for c in bins.chunks(6) {
@@ -72,7 +90,7 @@ pub fn hex_to_base_64(s: String) -> String {
 }
 
 // 'c' -> [0,0,0,0,1,1,0,0]
-pub fn char_to_binary(c: char) -> Vec<u8> {
+pub fn char_to_binary(c: char, bits: usize) -> Vec<u8> {
     let mut xs: Vec<u8> = Vec::new();
     let mut quotient: u8 = c as u8;
     let mut remainder: u8;
@@ -83,12 +101,12 @@ pub fn char_to_binary(c: char) -> Vec<u8> {
         xs.push(remainder);
     }
 
-    xs = pad(&xs, 8);
+    xs = pad(&xs, bits);
     xs.reverse();
     xs
 }
 
-// [0,0,0,0,1,1,0,0] -> 99
+// [0,1,1,0,0,0,1,1] -> 99
 pub fn binary_to_u8(bs: &[u8]) -> u8 {
     let mut n: u8 = 0;
 
@@ -114,13 +132,39 @@ pub fn string_to_base_64(s: String) -> String {
     let mut bins: Vec<u8> = Vec::new();
 
     for c in s.chars() {
-        bins.append(&mut char_to_binary(c));
+        bins.append(&mut char_to_binary(c, 8));
     }
     for c in bins.chunks(6) {
         b64.push(BASE_64_ALPHABET[binary_to_u8(c) as usize]);
     }
 
     b64
+}
+
+// Input: "ABCD"
+// Output: "001083"
+pub fn base_64_to_hex(s: &str) -> String {
+    let mut hex = String::new();
+    let mut bins: Vec<u8> = Vec::new();
+
+    for c in String::from(s).chars() {
+        bins.append(&mut char_to_binary(base_64_index(c) as u8 as char, 6));
+    }
+
+    for c in bins.chunks(8) {
+        hex.push_str(&u8_to_hex(binary_to_u8(c)));
+    }
+
+    hex
+}
+
+pub fn base_64_index(c: char) -> usize {
+    for (i, ch) in BASE_64_ALPHABET.iter().enumerate() {
+        if *ch == c {
+            return i;
+        }
+    }
+    return 0;
 }
 
 // FF -> 255
