@@ -14,10 +14,10 @@ fn main() -> std::io::Result<()> {
     let mut most_repeats = 0;
     for line in buf.lines() {
         if let Ok(encrypted_hex) = line {
-            let mut string_counts: HashMap<&[u8], u32> = HashMap::new();
+            let mut string_counts: HashMap<u8, u32> = HashMap::new();
             let bytes = hex_to_bytes(&encrypted_hex);
-            for chunk in bytes.chunks(16) {
-                let current_count = string_counts.entry(chunk).or_insert(0);
+            for byte in bytes {
+                let current_count = string_counts.entry(byte).or_insert(0);
                 *current_count += 1;
             }
             let num_repeats_in_this_text: u32 = string_counts.values().fold(0, |mut acc, entry| {
