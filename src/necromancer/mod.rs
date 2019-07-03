@@ -42,7 +42,7 @@ pub fn unmask_xor(s: &str) -> (String, f32, u8) {
     for mask_char in 40..128 {
         let mask_vec = vec![mask_char; s.len()];
         let mask = String::from_utf8(mask_vec.clone()).unwrap();
-        let score = english_score(&hex_xor(s, &string_to_hex(&mask)).into_bytes());
+        let score = english_score(&hex_to_string(&hex_xor(s, &string_to_hex(&mask))).into_bytes());
         if score > best_score {
             println!(
                 "Frequencies: {:?}",
@@ -203,10 +203,7 @@ pub fn hex_xor(s1: &str, s2: &str) -> String {
     for hunks in hex1.iter().zip(hex2) {
         xor.push(hunks.0 ^ hunks.1);
     }
-    match String::from_utf8(xor) {
-        Ok(valid) => valid,
-        Err(_) => String::new(),
-    }
+    u8s_to_hex_string(&xor)
 }
 
 pub fn xor(a: &[u8], b: &[u8]) -> Vec<u8> {
