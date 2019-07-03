@@ -39,11 +39,19 @@ pub fn unmask_xor(s: &str) -> (String, f32, u8) {
     let mut decrypted = String::new();
     let mut best_score = 0.0;
     let mut key: u8 = 0;
-    for mask_char in 39..128 {
+    for mask_char in 40..128 {
         let mask_vec = vec![mask_char; s.len()];
         let mask = String::from_utf8(mask_vec.clone()).unwrap();
         let score = english_score(&hex_xor(s, &string_to_hex(&mask)).into_bytes());
         if score > best_score {
+            println!(
+                "Frequencies: {:?}",
+                &character_frequencies(&decrypted.clone().into_bytes())[..]
+            );
+            println!(
+                "Frequencies: {:?}",
+                &character_frequencies(&String::from(WASHINGTON).into_bytes())[..]
+            );
             best_score = score;
             decrypted = hex_xor(s, &string_to_hex(&mask));
             key = mask_char;
@@ -242,7 +250,10 @@ pub fn character_frequencies(chars: &[u8]) -> [u32; 255] {
     for ch in chars {
         freq[*ch as usize] += 1;
     }
-    let freq_vec: Vec<u32> = freq.iter().map(|x| *x * 100 / chars.len() as u32).collect();
+    let freq_vec: Vec<u32> = freq
+        .iter()
+        .map(|x| (*x as f32 * 100.0 / chars.len() as f32) as u32)
+        .collect();
 
     freq.copy_from_slice(&freq_vec[..255]);
     freq

@@ -11,44 +11,51 @@ fn main() -> std::io::Result<()> {
     buf_reader.read_to_string(&mut encrypted_base_64)?;
     println!("{:?}", base_64_to_hex(&encrypted_base_64));
 
-    let mut encrypted = base_64_to_hex(&encrypted_base_64);
+    let encrypted = base_64_to_hex(&encrypted_base_64);
 
     for key_size in 2..40 {
         let bytes = encrypted.clone().into_bytes();
         let mut chunked = bytes.chunks(key_size);
         let a = chunked.next().unwrap();
         let b = chunked.next().unwrap();
+        let c = chunked.next().unwrap();
+        let d = chunked.next().unwrap();
         println!(
             "Key size: {:?}\t|Score:\t{:?}",
             key_size,
             hamming_distance(a, b) as f32 / key_size as f32
+                + hamming_distance(b, c) as f32 / key_size as f32
+                + hamming_distance(c, d) as f32 / key_size as f32
+                + hamming_distance(a, c) as f32 / key_size as f32
+                + hamming_distance(b, d) as f32 / key_size as f32
+                + hamming_distance(a, d) as f32 / key_size as f32
         );
     }
 
-    // Looks like the key size is probably 6
-    let key_size = 6;
+    let key_size = 4;
 
-    let mut key_bytes: [Vec<u8>; 6] = [
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-    ];
-    for six_bytes in encrypted.clone().into_bytes().chunks(6) {
-        for (i, byte) in six_bytes.iter().cloned().enumerate() {
+    let mut key_bytes: Vec<Vec<u8>> = vec![];
+
+    for _ in 0..key_size {
+        key_bytes.push(Vec::new());
+    }
+
+    for chunks in encrypted.clone().into_bytes().chunks(key_size) {
+        for (i, byte) in chunks.iter().cloned().enumerate() {
             key_bytes[i].push(byte);
         }
     }
 
+    let mut key: Vec<u8> = Vec::new();
+
     for bytes in &key_bytes {
-        println!("{:?}", unmask_xor(&u8s_to_hex_string(&bytes)).2);
+        let answer = unmask_xor(&u8s_to_hex_string(&bytes));
+        println!("Unencrypted: {:?}", answer.0);
+        println!("English score: {:?}", answer.1);
+        key.push(answer.2);
     }
 
-    // Seems like this is the key?
-    // 555555514444 in hex
-    let key: Vec<u8> = vec![85, 85, 85, 81, 68, 68];
+    println!("KEY: {:?}", u8s_to_hex_string(&key));
 
     let mask: Vec<u8> = key.iter().cloned().cycle().take(encrypted.len()).collect();
 
