@@ -5,7 +5,7 @@ pub fn decrypt_aes_128_ecb(encrypted: &str, key: &str) -> String {
 
     let text = decrypt(
         cipher,
-        &string_to_bytes(key),
+        key.as_bytes(),
         None,
         &hex_string_to_bytes(&encrypted),
     )
@@ -29,23 +29,13 @@ pub fn hamming_distance_byte(a: u8, b: u8) -> u8 {
     distance
 }
 
-pub fn string_to_bytes(s: &str) -> Vec<u8> {
-    String::from(s).into_bytes()
-}
-
 pub fn bytes_to_string(s: &[u8]) -> String {
     String::from_utf8(s.to_owned()).expect(&format!("Can't turn {:?} into valid string", s))
 }
 
 pub fn repeating_key_xor(s: &str, k: &str) -> String {
-    let s_bytes = &String::from(s).into_bytes();
-    let repeated_key: Vec<u8> = String::from(k)
-        .into_bytes()
-        .iter()
-        .cloned()
-        .cycle()
-        .take(s.len())
-        .collect();
+    let s_bytes = s.as_bytes();
+    let repeated_key: Vec<u8> = k.as_bytes().iter().cloned().cycle().take(s.len()).collect();
     bytes_to_hex_string(&xor(s_bytes, &repeated_key))
 }
 
@@ -69,11 +59,7 @@ pub fn deencrypt_single_byte_xor(s: &str) -> (String, f32, u8) {
 }
 
 pub fn hex_string_to_bytes(s: &str) -> Vec<u8> {
-    String::from(s)
-        .into_bytes()
-        .chunks(2)
-        .map(hex_to_byte)
-        .collect()
+    s.as_bytes().chunks(2).map(hex_to_byte).collect()
 }
 
 pub fn hex_to_base_64(s: &str) -> String {
@@ -147,8 +133,8 @@ pub fn base_64_to_hex(s: &str) -> String {
     let mut hex = String::new();
     let mut bins: Vec<u8> = Vec::new();
 
-    for c in string_to_bytes(s) {
-        let index = base_64_index(c as char);
+    for c in s.as_bytes() {
+        let index = base_64_index(*c as char);
         if index > -1 {
             bins.append(&mut byte_to_binary(index as u8, 6));
         }
@@ -203,11 +189,7 @@ pub fn xor(a: &[u8], b: &[u8]) -> Vec<u8> {
 // Output: "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d"
 #[allow(dead_code)]
 pub fn string_to_hex(s: &str) -> String {
-    String::from(s)
-        .into_bytes()
-        .iter()
-        .map(|x| u8_to_hex(*x))
-        .collect()
+    s.as_bytes().iter().map(|x| u8_to_hex(*x)).collect()
 }
 
 #[allow(dead_code)]
@@ -217,11 +199,7 @@ pub fn hex_to_string(hex: &str) -> String {
 }
 
 pub fn hex_to_bytes(hex: &str) -> Vec<u8> {
-    String::from(hex)
-        .into_bytes()
-        .chunks(2)
-        .map(hex_to_byte)
-        .collect()
+    hex.as_bytes().chunks(2).map(hex_to_byte).collect()
 }
 
 pub fn bytes_to_hex_string(xs: &[u8]) -> String {
@@ -252,9 +230,9 @@ pub fn mse(a: u32, b: u32) -> u32 {
 
 // MSE vs. english frequencies
 pub fn english_score(string: &str) -> f32 {
-    let error: u32 = character_frequencies(&string_to_bytes(string))
+    let error: u32 = character_frequencies(string.as_bytes())
         .iter()
-        .zip(character_frequencies(&String::from(WIKIPEDIA).into_bytes()).iter())
+        .zip(character_frequencies(WIKIPEDIA.as_bytes()).iter())
         .map(|x| mse(*x.0, *x.1 as u32))
         .sum();
     10000.0 / error as f32
@@ -292,8 +270,8 @@ mod test {
         let a = "this is a test";
 
         assert_eq!(
-            string_to_bytes(a),
-            vec![116, 104, 105, 115, 32, 105, 115, 32, 97, 32, 116, 101, 115, 116],
+            a.as_bytes(),
+            &[116, 104, 105, 115, 32, 105, 115, 32, 97, 32, 116, 101, 115, 116],
         );
     }
 
@@ -302,10 +280,7 @@ mod test {
         let a = "this is a test";
         let b = "wokka wokka!!!";
 
-        assert_eq!(
-            hamming_distance(&string_to_bytes(a), &string_to_bytes(b)),
-            37
-        );
+        assert_eq!(hamming_distance(a.as_bytes(), b.as_bytes()), 37);
     }
 
     #[test]
