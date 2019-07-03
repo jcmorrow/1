@@ -1,3 +1,18 @@
+use openssl::symm::{decrypt, Cipher};
+
+pub fn decrypt_aes_128_ecb(encrypted: &str, key: &str) -> String {
+    let cipher = Cipher::aes_128_ecb();
+
+    let text = decrypt(
+        cipher,
+        &string_to_bytes(key),
+        None,
+        &hex_string_to_bytes(&encrypted),
+    )
+    .unwrap();
+    hex_to_string(&bytes_to_hex_string(&text))
+}
+
 pub fn hamming_distance(a: &[u8], b: &[u8]) -> u32 {
     a.iter()
         .zip(b)
@@ -269,6 +284,8 @@ const BASE_64_ALPHABET: [char; 64] = [
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::fs::File;
+    use std::io::{BufReader, Read};
 
     #[test]
     fn test_string_to_bytes() {
@@ -357,5 +374,24 @@ mod test {
 
         assert_eq!(byte_to_binary(input as u8, 8), binary);
         assert_eq!(binary_to_byte(&binary), 88);
+    }
+
+    #[test]
+    fn test_decrypt_aes_ecb() {
+        let file = File::open("fixtures/7.txt").unwrap();
+        let mut buf_reader = BufReader::new(file);
+        let mut encrypted_base_64 = String::new();
+
+        let decrypted_file = File::open("fixtures/7_decrypted.txt").unwrap();
+        let mut decrypted_buf_reader = BufReader::new(decrypted_file);
+        let mut decrypted = String::new();
+        decrypted_buf_reader.read_to_string(&mut decrypted).unwrap();
+
+        buf_reader.read_to_string(&mut encrypted_base_64).unwrap();
+        let encrypted = base_64_to_hex(&encrypted_base_64);
+        let bytes = hex_string_to_bytes(&encrypted);
+        let key = "YELLOW SUBMARINE";
+
+        assert_eq!(decrypted, decrypt_aes_128_ecb(&encrypted, key));
     }
 }
